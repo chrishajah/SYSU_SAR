@@ -1,6 +1,6 @@
 %SAR Range-Doppler Algorithm Simulation
 %ChrisL 2024 @ SYSU
-clear;clc;
+clear;clc;close all;
 
 %%
 %Define SAR System Parameters
@@ -46,6 +46,34 @@ Ls = 0.886*lambda*R_eta_c / La2;
 bw_dop = 0.886*2*Vr*cos(theta_a)/La2;
 f_eta_c = 2 * Vr * sin(theta_a) / lambda; % 多普勒中心频率
 
+% 过采样率设置为1.2
+alpha_o = 1.2;
+
+% 方位向慢时间采样率
+f_azi = alpha_o*bw_dop; 
+
+% 距离向快时间采样率
+f_rng = alpha_o*bw_1x1;
+
+% 定义快慢时间时域变量
+% eta为慢时间变量，对应方位向 长度：128
+t_eta = -60/Vr:1/f_azi:60/Vr;
+% tau为快时间变量，对应距离向 长度：5395
+t_tau = -15e-6:1/f_rng:15e-6;
+
+% 定义方位和距离向频域FFT点数
+Nrg = 8192;
+Naz = 256;
+
+% 定义频域变量
+% 距离频率变量 长度：8192
+f_tau = (-f_rng / 2: f_rng/Nrg :f_rng / 2 - f_rng/Nrg);       
+f_tau=f_tau-(round(f_tau/f_rng))/f_rng;                         % 混叠方程
+
+% 方位频率变量 长度：256
+f_eta = f_eta_c + (-f_azi / 2:f_azi/Naz:f_azi / 2 - f_azi/Naz); 
+f_eta=f_eta-(round(f_eta/f_azi))/f_azi;                         % 混叠方程
+
 
 %目标参数：25个RCS等于1的理想点目标，均匀分布在以场景中心为中心的方位-50m～+50m、距离-250m～+250m的范围内。
 %-------------方位向120m---------------]
@@ -72,54 +100,30 @@ f_eta_c = 2 * Vr * sin(theta_a) / lambda; % 多普勒中心频率
 %
 %-------------方位向120m--------------
 
+% 目标个数25
+target_Num = 25;
 
-% 过采样率设置为1.2
-alpha_o = 1.2;
-
-% 方位向慢时间采样率
-f_azi = alpha_o*bw_dop; 
-
-% 距离向快时间采样率
-f_rng = alpha_o*bw_1x1;
+% 目标方位向坐标
+target_Pos_azimuth = [-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50];
+target_Pos_range = [50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50];
+target_R0 = sqrt(target_Pos_range.^2 + target_Pos_azimuth.^2+ R_eta_c^2);
 
 
-Nrg = 8192;
-Naz = 128;
-%定义快慢时间时域变量
-eta = -60/Vr:1/f_azi:60/Vr;
-tau = -15e-6:1/f_rng:15e-6;
-
-
-%定义频域变量
-f_tau = (-f_rng / 2: f_rng/Nrg :f_rng / 2 - f_rng/Nrg); % 距离频率变量
-f_tau=f_tau-(round(f_tau/f_rng))/f_rng;%混叠方程
-f_eta = f_eta_c + (-f_azi / 2:f_azi/Naz:f_azi / 2 - f_azi/Naz); % 方位频率变量
-f_eta=f_eta-(round(f_eta/f_azi))/f_azi;
 
 %%
-%信号建模(先对单个点目标0,0回波信号建模)
+% 信号建模
 
-[Tau,Eta] = meshgrid(tau,eta);
+% 设置距离时域-方位时域二维网络坐标
+[T_tau,T_eta] = meshgrid(t_tau,t_eta);
+
+% 设置频率时域-方位频域二维网络坐标
 [F_tau, F_eta] = meshgrid(f_tau, f_eta); 
 
 
-R_Eta = sqrt(R_eta_c^2 + Vr^2 * Eta.^2);
-
-Wr = (abs(Tau-2*R_Eta/c) <= tpd / 2);
-Wa = sinc((La2*atan(Vr*(Eta - 0)./R_eta_c)/lambda).^2);
-
-S_0 = Wa.*exp(-1j*4*pi*f_rng .*R_Eta./c).*exp(1j*pi*Kr.*(Tau - 2.*R_Eta./c).^2);
-
-figure();
-imagesc(abs(S_0));
-
-%距离压缩滤波器
-Hrg = (abs(F_tau) <= bw_1x1 / 2) .* exp(+1j*pi*F_tau.^2/Kr);%滤波器
-S_f = fft(S_0,8192,2);
-
-S_rngcomp = fftshift(ifft(Hrg .* S_f));
-S_f_rngcomp = Hrg .* S_f;
-
-
-figure();
-imagesc(abs(S_rngcomp));
+for ii=1:target_Num
+    R_eta(:,:,ii) =  sqrt(target_R0(ii)^2 + Vr^2 .* T_eta);
+    % 距离向包络，即距离窗
+    Wr = (tpd/2) .*ones(128,5395);
+    
+    
+end
