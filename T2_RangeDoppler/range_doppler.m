@@ -119,7 +119,7 @@ target_Num = 25;
 % 目标方位向坐标
 target_Pos_azimuth = [-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50];
 target_Pos_range = [50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50];
-target_R0 = sqrt(target_Pos_azimuth.^2+ R_eta_c^2);
+target_R0 = sqrt(target_Pos_range.^2+ R_eta_c^2);
 
 
 
@@ -136,8 +136,10 @@ target_R0 = sqrt(target_Pos_azimuth.^2+ R_eta_c^2);
 S_echo = zeros(Naz, Nrg);
 
 for ii=1:target_Num
-    eta_c_target(ii) = (target_Pos_azimuth(ii)-target_Pos_range(ii)*tan(theta_a))/Vr;% 目标i的波束中心穿越时刻
-    R_eta(:,:,ii) =  sqrt(target_R0(ii)^2 + Vr^2 .* T_eta);
+    %eta_c_target(ii) = (target_Pos_azimuth(ii)-target_Pos_range(ii)*tan(theta_a))/Vr;% 目标i的波束中心穿越时刻
+    eta_c_target(ii) = (target_Pos_azimuth(ii)-target_R0(ii) * tan(theta_a)) / Vr; %波束中心穿越时刻
+    R_eta(:,:,ii) = sqrt((target_R0(ii))^2+(Vr^2)*((T_eta - target_Pos_azimuth(ii) / Vr).^2));
+    %R_eta(:,:,ii) =  sqrt(target_R0(ii)^2 + Vr^2 .* T_eta);
     %R_eta(:,:,ii) =  target_R0(ii) + Vr^2 .* T_eta .^2 /2*R_eta_c;
     % 距离向包络，即距离窗
     Wr = abs(T_tau - 2 * R_eta(:,:,ii)/c) <= 1/2 * tpd .* ones(Naz,Nrg);
@@ -222,3 +224,84 @@ imagesc(angle(S_echo));
 title('原始仿真信号相位');
 xlabel('距离向时间 \tau');
 ylabel('方位向时间 \eta');
+
+%% 距离压缩可视化
+
+%距离频谱可视化
+figure('name', "回波频谱可视化")
+subplot(2, 2, 1);
+imagesc(real(S1_ftau_eta));
+title('回波距离向实部');
+xlabel('距离向频谱点数f_\tau');
+ylabel('方位向时间 \eta');
+
+subplot(2, 2, 2);
+imagesc(imag(S1_ftau_eta));
+title('回波距离向虚部');
+xlabel('距离向频谱点数f_\tau');
+ylabel('方位向时间 \eta');
+
+subplot(2, 2, 3);
+imagesc(abs(S1_ftau_eta));
+title('回波距离向频谱幅度');
+xlabel('距离向频谱点数f_\tau');
+ylabel('方位向时间 \eta');
+
+subplot(2, 2, 4);
+imagesc(angle(S1_ftau_eta));
+title('回波距离向相位');
+xlabel('距离向频谱点数f_\tau');
+ylabel('方位向时间 \eta');
+
+%距离压缩结果
+figure('name', "距离压缩时域结果")
+subplot(1, 2, 1);
+imagesc(real(S1_tau_eta));
+title('实部');
+xlabel('距离向时间 \tau');
+ylabel('方位向时间 \eta');
+
+subplot(1, 2, 2);
+imagesc(abs(S1_tau_eta));
+title('幅度');
+xlabel('距离向时间 \tau');
+ylabel('方位向时间 \eta');
+%% 方位向傅里叶变换可视化
+
+figure('name', "方位向傅里叶变换结果")
+subplot(1, 2, 1);
+imagesc(real(S2_tau_feta));
+title('实部');
+xlabel('距离向时间\tau');
+ylabel('方位向频谱点数f_\eta');
+
+subplot(1, 2, 2);
+imagesc(abs(S2_tau_feta));
+title('幅度');
+xlabel('距离向时间\tau');
+ylabel('方位向频谱点数f_\eta');
+
+%% 距离徙动校正可视化
+
+figure('name', "距离徙动校正结果")
+subplot(1, 2, 1);
+imagesc(real(S3_tau_feta_RCMC));
+title('实部');
+xlabel('距离向时间\tau');
+ylabel('方位向频率点数 f_\eta');
+
+subplot(1, 2, 2);
+imagesc(abs(S3_tau_feta_RCMC));
+title('幅度');
+xlabel('距离向时间\tau');
+ylabel('方位向频率点数 f_\eta');
+
+%% 回波成像
+figure('name', "点目标成像结果")
+subplot(1, 2, 1);
+imagesc(abs(S4_tau_eta));
+title('幅度');
+xlabel('距离向时间\tau');
+ylabel('方位向时间 \eta');
+
+
