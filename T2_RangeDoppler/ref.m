@@ -99,7 +99,7 @@ Position_y_a = [yA, yB, yC]; %点目标的坐标矩阵表示
 %% 生成回波S_echo
 Target_num = 3; %目标数量
 S_echo = zeros(Naz, Nrg);
-for i = 1:Target_num
+for i = 1:2
     R0_Target = sqrt((R0 * sin(phi) + Position_x_r(i)) ^2+H^2); %对每个目标计算瞬时斜距
     
     time_eta_c_Target = (Position_y_a(i)-R0_Target * tan(theta_r_c)) / Vr; %波束中心穿越时刻

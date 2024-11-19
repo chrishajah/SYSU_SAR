@@ -155,7 +155,7 @@ for ii=1:target_Num
     %fprintf("徙动校正前,点数坐标应为%d行(方),%d列(距)\n\n",round(Time_eta_Point(ii)),Time_tau_Point);
 end
 
-S_echo = S_echo .* exp(-2j*pi*f_eta_c*T_eta); %校正时间轴
+%S_echo = S_echo .* exp(-2j*pi*f_eta_c*T_eta); %校正时间轴
 
 
 %% 距离压缩
@@ -222,3 +222,18 @@ imagesc(angle(S_echo));
 title('原始仿真信号相位');
 xlabel('距离向时间 \tau');
 ylabel('方位向时间 \eta');
+
+
+%% 回波成像
+figure('name', "点目标成像结果")
+subplot(1, 2, 1);
+imagesc(abs(S4_tau_eta));
+title('幅度');
+xlabel('距离向时间\tau');
+ylabel('方位向时间 \eta');
+
+subplot(1, 2, 2);
+imagesc(abs(S5_tau_eta_Cut)); %切片
+title('点目标C的32×32切片(角度校正前)');
+xlabel('距离向时间\tau');
+ylabel('方位向时间\eta');
