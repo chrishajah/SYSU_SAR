@@ -119,8 +119,8 @@ target_Num = 25;
 % 目标方位向坐标
 target_Pos_azimuth = [-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50,-50,-25,0,25,50];
 target_Pos_range = [50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50,50,25,0,-25,-50];
-target_R0 = sqrt(target_Pos_range.^2+ R_eta_c^2);
-
+target_R0 =  sqrt(target_Pos_range .^2+R_eta_c^2); %对每个目标计算瞬时斜距
+Ta = 0.886 * lambda * R_eta_c / (La2 * Vr * cos(theta_a)); %目标照射时间
 
 
 %%
@@ -139,16 +139,18 @@ for ii=1:target_Num
     %eta_c_target(ii) = (target_Pos_azimuth(ii)-target_Pos_range(ii)*tan(theta_a))/Vr;% 目标i的波束中心穿越时刻
     eta_c_target(ii) = (target_Pos_azimuth(ii)-target_R0(ii) * tan(theta_a)) / Vr; %波束中心穿越时刻
     R_eta(:,:,ii) = sqrt((target_R0(ii))^2+(Vr^2)*((T_eta - target_Pos_azimuth(ii) / Vr).^2));
-    %R_eta(:,:,ii) =  sqrt(target_R0(ii)^2 + Vr^2 .* T_eta);
+    % R_eta(:,:,ii) = sqrt(R_eta_c^2+(target_Pos_range(ii)-(-R_eta_c*sin(theta_a)))^2+(target_Pos_azimuth(ii)-T_eta*Vr).^2);
     %R_eta(:,:,ii) =  target_R0(ii) + Vr^2 .* T_eta .^2 /2*R_eta_c;
     % 距离向包络，即距离窗
-    Wr = abs(T_tau - 2 * R_eta(:,:,ii)/c) <= 1/2 * tpd .* ones(Naz,Nrg);
+    Wr = abs(T_tau - 2 * R_eta(:,:,ii)/c) <=  tpd/2 ;
     % 方位向包络，采用sinc包络
-    theta = atan( Vr.*(t_tau-eta_c_target(ii).*ones(Naz,Nrg))/target_Pos_range(ii) );
-    Wa = (sinc(0.886.*theta./beta_bw)).^2; 
+    %Wa = (La2*atan(Vr*(T_eta - eta_c_target(ii))./(R_eta_c * sin(theta_a) + target_Pos_range(ii))/lambda).^2)<=Ta/2;
+    Wa = abs(T_eta-eta_c_target(ii)) <= Ta / 2;
+    %theta = atan( Vr.*(t_tau-eta_c_target(ii).*ones(Naz,Nrg))/target_Pos_range(ii) );
+    %Wa = (sinc(0.886.*theta./beta_bw)).^2; 
     % 回波相位项
     Phase = exp(-1j*4*pi*freq*R_eta(:,:,ii)/c) .* exp(+1j*pi*Kr*(T_tau - 2 * R_eta(:,:,ii) / c).^2);
-    S_echo_Target = Wr .* Wa .* Phase;
+    S_echo_Target = Wr  .* Wa .* Phase;
     S_echo = S_echo + S_echo_Target;
     %%%%%%%%%%%%%%格式化输出%%%%%%%%%%%%%%%%%%
     fprintf("当前目标:%d,坐标:(%.2f,%.2f),\n最近斜距R0=%.2f,波束中心穿越时刻=%.4f\n", ii, target_Pos_range(ii), target_Pos_azimuth(ii),target_R0(ii),eta_c_target(ii));
